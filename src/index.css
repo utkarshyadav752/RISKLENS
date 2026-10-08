@@ -1,0 +1,114 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --canvas-base: #0B0E14;
+    --surface-card: #151B26;
+    --surface-elevated: #1F2736;
+    --surface-border: #273142;
+    --text-primary: #F1F3F5;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --risk-critical: #FF6B6B;
+    --risk-high: #FF922B;
+    --risk-medium: #FCC419;
+    --risk-safe: #51CF66;
+    --risk-info: #4DABF7;
+  }
+
+  body {
+    background-color: var(--canvas-base);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(ellipse at 50% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 60%),
+      radial-gradient(circle at 100% 50%, rgba(81, 207, 102, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 0% 100%, rgba(255, 107, 107, 0.04) 0%, transparent 50%),
+      linear-gradient(to right, rgba(39, 49, 66, 0.15) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(39, 49, 66, 0.15) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 48px 48px, 48px 48px;
+  }
+
+  /* Focus ring compliance: WCAG 2.2 visible focus indicator */
+  :focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+  }
+
+  /* Custom scrollbars for data tables and sidebars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0B0E14;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #273142;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3B82F6;
+  }
+}
+
+/* Tabular figures helper */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Glassmorphism & Cyber Glow utilities */
+.glass-panel {
+  background: rgba(21, 27, 38, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(39, 49, 66, 0.8);
+}
+
+.glow-blue {
+  box-shadow: 0 0 25px -5px rgba(59, 130, 246, 0.25);
+}
+
+.glow-red {
+  box-shadow: 0 0 30px -5px rgba(255, 107, 107, 0.35);
+}
+
+.glow-green {
+  box-shadow: 0 0 25px -5px rgba(81, 207, 102, 0.25);
+}
+
+/* Keyframes for subtle 3D scanner line & holographic pulse */
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(1000%); }
+}
+
+@keyframes holographicGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.25), inset 0 0 15px rgba(6, 182, 212, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.45), inset 0 0 25px rgba(6, 182, 212, 0.2);
+  }
+}
+
+@keyframes float3D {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(0.5deg); }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+.hologram-card {
+  animation: holographicGlow 4s ease-in-out infinite;
+}
+
+.float-3d {
+  animation: float3D 6s ease-in-out infinite;
+}

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RiskLens – Standalone Zero-Dependency Preview</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Three.js CDN for 3D graphs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            canvas: { base: '#0B0E14' },
+            surface: {
+              card: '#151B26',
+              elevated: '#1F2736',
+              border: '#273142'
+            },
+            risk: {
+              critical: '#FF6B6B',
+              high: '#FF922B',
+              medium: '#FCC419',
+              safe: '#51CF66',
+              info: '#4DABF7'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { background-color: #0B0E14; color: #F1F3F5; font-family: 'Inter', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#0B0E14] text-[#F1F3F5] selection:bg-blue-600 selection:text-white antialiased">
+  <!-- Top Global Bar -->
+  <header class="h-16 px-4 bg-[#151B26] border-b border-[#273142] flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-mono font-bold text-white text-base">Zθ</div>
+        <span class="font-bold text-sm tracking-tight">RiskLens</span>
+        <span class="text-xs font-mono text-slate-500">Standalone Preview</span>
+      </div>
+
+      <!-- Persona Selector Tabs -->
+      <div class="flex items-center bg-[#0B0E14] p-1 rounded-xl border border-[#273142]" id="personaSelector">
+        <button onclick="setPersona('cro')" id="tab-cro" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1F2736] text-white">Elena Vance (CRO)</button>
+        <button onclick="setPersona('quant')" id="tab-quant" class="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">Marcus Chen (Quant)</button>
+        <button onclick="setPersona('compliance')" id="tab-compliance" class="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">Sarah Al-Mansoor (Compliance)</button>
+        <button onclick="setPersona('desk_ops')" id="tab-desk_ops" class="px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white">Liam O'Connor (Desk Ops)</button>
+        <button onclick="setPersona('spatial')" id="tab-spatial" class="px-3 py-1.5 rounded-lg text-xs text-blue-400 font-semibold hover:text-white flex items-center gap-1">🌐 3D Spatial</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-3">
+      <!-- Threat Selector -->
+      <div class="flex items-center bg-[#0B0E14] p-1 rounded-lg border border-[#273142] text-xs font-mono">
+        <button onclick="setThreat('normal')" id="threat-normal" class="px-2 py-1 rounded bg-[#51CF66]/20 text-[#51CF66] font-bold">NORMAL</button>
+        <button onclick="setThreat('elevated')" id="threat-elevated" class="px-2 py-1 rounded text-slate-400">ELEVATED</button>
+        <button onclick="setThreat('crisis')" id="threat-crisis" class="px-2 py-1 rounded text-slate-400">CRISIS</button>
+      </div>
+
+      <!-- Stress Sim Toggle -->
+      <button onclick="toggleStressSim()" id="simBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1F2736] border border-[#273142] text-xs font-mono text-slate-300 hover:text-white">
+        <span>⚡ Stress Sim: </span>
+        <span id="simStatus" class="text-slate-400 font-bold">OFF</span>
+      </button>
+
+      <span class="text-xs font-mono text-[#51CF66] flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#51CF66] animate-ping"></span> LIVE 12ms</span>
+    </div>
+  </header>
+
+  <!-- Crisis Banner -->
+  <aside id="crisisBanner" class="hidden bg-red-950 border-b border-red-500/50 px-4 py-2 text-xs font-mono text-red-200 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+      <span class="font-bold uppercase bg-red-900/60 px-2 py-0.5 rounded border border-red-500/40">DEFCON 1 ACTIVE</span>
+      <span>Multiple regulatory caps breached. Algorithmic freeze armed.</span>
+    </div>
+    <button onclick="setThreat('normal')" class="text-xs underline text-red-300 hover:text-white">Dismiss</button>
+  </aside>
+
+  <!-- Main View Container -->
+  <main class="flex-1 p-6 max-w-7xl mx-auto w-full space-y-6" id="viewContainer">
+    <!-- View content rendered via JavaScript -->
+  </main>
+
+  <script>
+    let currentPersona = 'cro';
+    let currentThreat = 'normal';
+    let isSimMode = false;
+
+    const DATA = {
+      cro: {
+        title: "Elena Vance · Chief Risk Officer",
+        subtitle: "Executive Capital Governance & Board Solvency Oversight (Comfortable Layout)",
+        metrics: [
+          { name: "Enterprise Capital at Risk", val: "$42.8M", stressed: "$68.4M", lim: "$50.0M", delta: "-3.4%", color: "text-[#51CF66]" },
+          { name: "Tier 1 CET1 Capital Adequacy", val: "14.8%", stressed: "11.2%", lim: "11.5% Floor", delta: "+1.2%", color: "text-[#51CF66]" },
+          { name: "Solvency II Buffer", val: "182%", stressed: "128%", lim: "140% Target", delta: "+4.5%", color: "text-[#51CF66]" },
+          { name: "Liquidity Coverage Ratio", val: "164%", stressed: "118%", lim: "100% Stat", delta: "+2.1%", color: "text-[#51CF66]" }
+        ]
+      },
+      quant: {
+        title: "Marcus Chen · Senior Quantitative Analyst",
+        subtitle: "100,000-Run Monte Carlo Simulation & Stochastic Surfaces (Compact Layout)",
+        metrics: [
+          { name: "Parametric 99% VaR", val: "$48.65M", stressed: "$68.40M", lim: "$45.0M", delta: "+4.2%", color: "text-[#FF6B6B]" },
+          { name: "Expected Shortfall (ES 99)", val: "$62.10M", stressed: "$88.20M", lim: "$55.0M", delta: "+8.1%", color: "text-[#FF6B6B]" },
+          { name: "Portfolio Net Vega", val: "$4.87M", stressed: "$4.87M", lim: "$5.5M", delta: "-1.5%", color: "text-[#51CF66]" },
+          { name: "Tail Index (Hill α)", val: "3.42", stressed: "2.14", lim: "> 3.0", delta: "-2.1%", color: "text-[#51CF66]" }
+        ]
+      },
+      compliance: {
+        title: "Sarah Al-Mansoor · Regulatory Compliance & Audit Lead",
+        subtitle: "SEC Rule 15c3-5, MiFID II RTS 27 Verification & Immutable Ledger (Standard Layout)",
+        metrics: [
+          { name: "Active SLA Breaches", val: "4", stressed: "7", lim: "0 Target", delta: "0", color: "text-[#FF6B6B]" },
+          { name: "SEC 15c3-5 Pre-Trade Pass", val: "99.98%", stressed: "99.98%", lim: ">99.9%", delta: "+0.02%", color: "text-[#51CF66]" },
+          { name: "MiFID II Execution Quality", val: "98.7%", stressed: "94.2%", lim: ">95.0%", delta: "+1.4%", color: "text-[#51CF66]" },
+          { name: "Ledger WORM State", val: "100%", stressed: "100%", lim: "SHA-256", delta: "Sealed", color: "text-[#51CF66]" }
+        ]
+      },
+      desk_ops: {
+        title: "Liam O'Connor · Trading Floor Operations Lead",
+        subtitle: "Sub-Second Intraday Margin Telemetry & Algorithmic Circuit Breaker (Compact Layout)",
+        metrics: [
+          { name: "Active Execution Orders", val: "31,490", stressed: "42,100", lim: "50k Cap", delta: "+6.4%", color: "text-[#51CF66]" },
+          { name: "Avg Execution Slippage", val: "11.2 bps", stressed: "18.2 bps", lim: "8.0 bps", delta: "+12.5%", color: "text-[#FF922B]" },
+          { name: "Committed Intraday Margin", val: "$602.9M", stressed: "$740.0M", lim: "$895M Cap", delta: "+4.8%", color: "text-[#FCC419]" },
+          { name: "Anomaly Detection Index", val: "0.12", stressed: "0.89", lim: "<0.30", delta: "-5.0%", color: "text-[#51CF66]" }
+        ]
+      },
+      spatial: {
+        title: "3D Spatial Telemetry & Volatility Universe",
+        subtitle: "Interactive WebGL 3D Parametric Risk Terrain, Global Geodesic Network & Monte Carlo Phase Space",
+        metrics: [
+          { name: "3D Manifold Curvature (κ)", val: "0.42", stressed: "1.84", lim: "<0.60", delta: "-4.2%", color: "text-[#51CF66]" },
+          { name: "Global Geodesic Flow Rate", val: "$2.41B", stressed: "$3.12B", lim: "$3.0B Max", delta: "+8.5%", color: "text-[#51CF66]" },
+          { name: "Phase-Space Tail Mass", val: "1.00%", stressed: "4.82%", lim: "1.00% Stat", delta: "0%", color: "text-[#51CF66]" },
+          { name: "Hologram Desks Render", val: "100%", stressed: "100%", lim: "60 FPS", delta: "Active", color: "text-[#51CF66]" }
+        ]
+      }
+    };
+
+    let threeAnimId = null;
+
+    function renderView() {
+      if (threeAnimId) cancelAnimationFrame(threeAnimId);
+      const p = DATA[currentPersona];
+      const container = document.getElementById('viewContainer');
+
+      let metricsHtml = p.metrics.map(m => `
+        <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142] flex flex-col justify-between">
+          <span class="text-xs font-mono uppercase text-slate-400">${m.name}</span>
+          <div class="flex items-baseline gap-2 mt-2">
+            <span class="text-2xl font-bold font-mono ${isSimMode ? 'text-[#FF6B6B]' : 'text-white'}">
+              ${isSimMode ? m.stressed : m.val}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-xs font-mono text-slate-500 pt-2 border-t border-[#273142]/60 mt-3">
+            <span class="${m.color}">${m.delta}</span>
+            <span>Limit: ${m.lim}</span>
+          </div>
+        </div>
+      `).join('');
+
+      if (currentPersona === 'spatial') {
+        container.innerHTML = `
+          <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142] flex items-center justify-between">
+            <div>
+              <h1 class="text-base font-bold text-white">${p.title}</h1>
+              <p class="text-xs font-mono text-slate-400 mt-0.5">${p.subtitle}</p>
+            </div>
+            <div class="px-2.5 py-1 rounded bg-[#0B0E14] border border-[#273142] text-xs font-mono text-blue-400 font-semibold">
+              Three.js WebGL Engine Active
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            ${metricsHtml}
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142] flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-white uppercase font-mono">Interactive 3D Parametric Risk Terrain (Click & Drag to Rotate)</span>
+              <span class="text-xs font-mono text-blue-400">FPS: 60 · Dynamic Waves</span>
+            </div>
+            <div id="threePreviewCanvas" class="w-full h-96 rounded-lg bg-[#0B0E14] border border-[#273142] overflow-hidden cursor-grab active:cursor-grabbing"></div>
+          </div>
+        `;
+
+        setTimeout(initThreePreview, 50);
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142] flex items-center justify-between">
+          <div>
+            <h1 class="text-base font-bold text-white">${p.title}</h1>
+            <p class="text-xs font-mono text-slate-400 mt-0.5">${p.subtitle}</p>
+          </div>
+          <div class="px-2.5 py-1 rounded bg-[#0B0E14] border border-[#273142] text-xs font-mono text-blue-400 font-semibold">
+            WCAG 2.2 Level AA Verified
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          ${metricsHtml}
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142]">
+            <h2 class="text-xs font-bold text-white uppercase font-mono mb-3">Value at Risk (VaR 99%) Semi-Circular Arc</h2>
+            <div class="flex flex-col items-center justify-center p-4">
+              <div class="text-3xl font-mono font-bold ${isSimMode ? 'text-[#FF6B6B]' : 'text-[#51CF66]'}">
+                ${isSimMode ? '$68.4M' : '$42.8M'}
+              </div>
+              <span class="text-xs font-mono text-slate-400 mt-1">Cap Limit: $50.0M · 99.0% Confidence</span>
+              <div class="w-full bg-[#1F2736] h-3 rounded-full mt-4 overflow-hidden">
+                <div class="h-full ${isSimMode ? 'bg-[#FF6B6B] w-[85%]' : 'bg-[#51CF66] w-[53%]' } transition-all duration-300"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#151B26] border border-[#273142]">
+            <h2 class="text-xs font-bold text-white uppercase font-mono mb-3">Algorithmic Trading Emergency Isolation</h2>
+            <p class="text-xs text-slate-400 font-mono mb-4">Slide-to-confirm fail-safe halts execution routing on all 5 algorithmic desks.</p>
+            <button onclick="alert('EMERGENCY CIRCUIT BREAKER CONFIRMED: All algorithmic execution desks halted immediately.')" class="w-full py-3 rounded-lg bg-red-600/20 border border-red-500/50 text-red-300 hover:bg-red-600/30 text-xs font-mono font-bold tracking-wider uppercase transition-colors">
+              🛑 Execute Emergency Circuit Breaker Freeze
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function initThreePreview() {
+      const el = document.getElementById('threePreviewCanvas');
+      if (!el || !window.THREE) return;
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+      camera.position.set(0, 14, 18);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      el.innerHTML = '';
+      el.appendChild(renderer.domElement);
+
+      const geom = new THREE.PlaneGeometry(16, 16, 36, 36);
+      geom.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, wireframe: true });
+      const mesh = new THREE.Mesh(geom, mat);
+      scene.add(mesh);
+
+      const grid = new THREE.GridHelper(16, 16, 0x3b82f6, 0x1f2736);
+      grid.position.y = -2;
+      scene.add(grid);
+
+      let t = 0;
+      function loop() {
+        threeAnimId = requestAnimationFrame(loop);
+        t += 0.03;
+        mesh.rotation.y += 0.005;
+        const pos = geom.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const u = pos.getX(i);
+          const v = pos.getZ(i);
+          pos.setY(i, Math.sin(u * 0.4 + t) * Math.cos(v * 0.4 + t) * (isSimMode ? 2.5 : 1.2));
+        }
+        pos.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+      loop();
+    }
+
+    function setPersona(role) {
+      currentPersona = role;
+      ['cro', 'quant', 'compliance', 'desk_ops', 'spatial'].forEach(r => {
+        const btn = document.getElementById('tab-' + r);
+        if (btn) {
+          if (r === role) {
+            btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1F2736] text-white";
+          } else {
+            btn.className = "px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-white";
+          }
+        }
+      });
+      renderView();
+    }
+
+    function setThreat(level) {
+      currentThreat = level;
+      const banner = document.getElementById('crisisBanner');
+      if (level === 'crisis') {
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      ['normal', 'elevated', 'crisis'].forEach(l => {
+        const b = document.getElementById('threat-' + l);
+        if (l === level) {
+          b.className = l === 'crisis' ? "px-2 py-1 rounded bg-[#FF6B6B]/20 text-[#FF6B6B] font-bold" :
+                        l === 'elevated' ? "px-2 py-1 rounded bg-[#FF922B]/20 text-[#FF922B] font-bold" :
+                        "px-2 py-1 rounded bg-[#51CF66]/20 text-[#51CF66] font-bold";
+        } else {
+          b.className = "px-2 py-1 rounded text-slate-400";
+        }
+      });
+    }
+
+    function toggleStressSim() {
+      isSimMode = !isSimMode;
+      document.getElementById('simStatus').innerText = isSimMode ? 'ACTIVE (+100bps)' : 'OFF';
+      document.getElementById('simStatus').className = isSimMode ? 'text-[#FF922B] font-bold' : 'text-slate-400 font-bold';
+      renderView();
+    }
+
+    // Initialize
+    renderView();
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
